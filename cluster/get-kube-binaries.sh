@@ -114,6 +114,9 @@ function detect_client_info() {
       i?86*)
         CLIENT_ARCH="386"
         ;;
+      loongarch64*)
+        CLIENT_ARCH="loong64"
+        ;;
       ppc64le*)
         CLIENT_ARCH="ppc64le"
         ;;
@@ -122,7 +125,7 @@ function detect_client_info() {
         ;;
       *)
         echo "Unknown, unsupported architecture (${machine})." >&2
-        echo "Supported architectures x86_64, i686, arm, arm64, ppc64le, s390x." >&2
+        echo "Supported architectures x86_64, i686, arm, arm64, loongarch64, ppc64le, s390x." >&2
         echo "Bailing out." >&2
         exit 3
         ;;

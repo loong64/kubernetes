@@ -167,6 +167,8 @@ case "${machine}" in
     ;;
   aarch64*|arm64*)
     ;;
+  loongarch64*)
+    ;;
   ppc64le*)
     ;;
   arm*)
@@ -175,7 +177,7 @@ case "${machine}" in
     ;;
   *)
     echo "Unknown, unsupported architecture (${machine})." >&2
-    echo "Supported architectures x86_64, i686, arm, arm64, ppc64le." >&2
+    echo "Supported architectures x86_64, i686, arm, arm64, loongarch64, ppc64le." >&2
     echo "Bailing out." >&2
     exit 3
     ;;

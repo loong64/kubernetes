@@ -491,6 +491,10 @@ function update-coredns-config() {
         host_arch=arm
         corefile_tool_SHA="721dbfcabda71a2648fd7d4d9241930313397a07d72828b2054315f85b177794"
         ;;
+      loongarch64*)
+        host_arch=loong64
+        corefile_tool_SHA="53625a5e817cc5e9519fcc14b975096dfab0cc92b2175effb68e99d90d3446dd"
+        ;;
       s390x*)
         host_arch=s390x
         corefile_tool_SHA="56452a00a703afd4f816d558f78f279af5f29f1940a478baa694da20f4586698"
@@ -500,14 +504,18 @@ function update-coredns-config() {
         corefile_tool_SHA="8a5118cb0c998a79ad1d7e4b001af2e23c2cfa83b5489c2823d04ab1c9e33498"
         ;;
       *)
-        echo "Unsupported host arch. Must be x86_64, 386, arm, arm64, s390x or ppc64le." >&2
+        echo "Unsupported host arch. Must be x86_64, 386, arm, arm64, loongarch64, s390x or ppc64le." >&2
         exit 1
         ;;
     esac
 
   # Download the CoreDNS migration tool
   echo "== Downloading the CoreDNS migration tool =="
-  wget -P "${download_dir}" "https://github.com/coredns/corefile-migration/releases/download/v1.0.17/corefile-tool-${host_arch}" >/dev/null 2>&1
+  if [[ "${host_arch}" == "loong64" ]]; then
+    wget -P "${download_dir}" "https://github.com/loong64/corefile-migration/releases/download/v1.0.17/corefile-tool-${host_arch}" >/dev/null 2>&1
+  else
+    wget -P "${download_dir}" "https://github.com/coredns/corefile-migration/releases/download/v1.0.17/corefile-tool-${host_arch}" >/dev/null 2>&1
+  fi
 
   local -r checkSHA=$(sha256sum "${download_dir}/corefile-tool-${host_arch}" | cut -d " " -f 1)
   if [[ "${checkSHA}" != "${corefile_tool_SHA}" ]]; then

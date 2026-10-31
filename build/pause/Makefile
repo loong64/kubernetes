@@ -38,7 +38,7 @@ BASE := ${BASE.${OS}}
 JQ_IMAGE := ghcr.io/jqlang/jq@sha256:a186dcd84a1e28bb48cdf3d7768b890d08621a87bb651fadb7db6815a6bf5ad5
 
 ALL_OS = linux windows
-ALL_ARCH.linux = amd64 arm64 ppc64le s390x
+ALL_ARCH.linux = amd64 arm64 loong64 ppc64le s390x
 ALL_OS_ARCH.linux = $(foreach arch, ${ALL_ARCH.linux}, linux-$(arch))
 ALL_ARCH.windows = amd64
 # ALL_OSVERSIONS lists all os.versions in BASE.windows.
@@ -70,6 +70,7 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 TRIPLE.windows-amd64 := x86_64-w64-mingw32
 TRIPLE.linux-amd64 := x86_64-linux-gnu
 TRIPLE.linux-arm64 := aarch64-linux-gnu
+TRIPLE.linux-loong64 := loongarch64-linux-gnu
 TRIPLE.linux-ppc64le := powerpc64le-linux-gnu
 TRIPLE.linux-s390x := s390x-linux-gnu
 TRIPLE := ${TRIPLE.${OS}-${ARCH}}
