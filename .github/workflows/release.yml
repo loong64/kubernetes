@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          preinstalled-runtimes: false
+          swap-storage: false
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version-file: go.mod
+      - name: Build artifacts
+        env:
+          KUBE_BASE_IMAGE_REGISTRY: ghcr.io/loong64/build-image
+          KUBE_CROSS_IMAGE: ghcr.io/loong64/build-image/kube-cross
+          KUBE_DOCKER_REGISTRY: ghcr.io/loong64
+        run: |
+          make quick-release KUBE_FASTBUILD=false
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-tars
+          if-no-files-found: error
+          path: _output/release-tars
+
+      - name: Upload images
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-images
+          if-no-files-found: error
+          path: _output/release-images
+
+  images:
+    name: Image
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+    permissions:
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: release-images
+          path: _output/release-images
+      - name: Push and merge images
+        shell: bash
+        run: |
+          shopt -s failglob
+          declare -A manifests
+          for archive in _output/release-images/*/*.tar; do
+            arch="$(basename "$(dirname "$archive")")"
+            component="$(basename "$archive" .tar)"
+            # Preserve the version chosen by the Kubernetes build scripts.
+            source_image="$(tar -xOf "$archive" manifest.json | python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["RepoTags"][0])')"
+            image="ghcr.io/loong64/${component}-${arch}:${source_image##*:}"
+            target="ghcr.io/loong64/${component}:${source_image##*:}"
+            docker load --input "$archive"
+            docker tag "$source_image" "$image"
+            docker push "$image"
+            manifests["$target"]+=" $image"
+          done
+          for target in "${!manifests[@]}"; do
+            read -r -a sources <<< "${manifests[$target]}"
+            docker buildx imagetools create --tag "$target" "${sources[@]}"
+          done
+
+  publish:
+    name: Publish
+    needs: [build, images]
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: release-tars
+          path: _output/release-tars
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          gh release create "${TAG_NAME}" \
+            --repo ${{ github.repository }} \
+            --generate-notes \
+            --title "${TAG_NAME}" \
+            _output/release-tars/*

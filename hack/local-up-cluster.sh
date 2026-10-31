@@ -403,6 +403,9 @@ function detect_arch {
       i?86*)
         host_arch=x86
         ;;
+      loongarch64*)
+        host_arch=loong64
+        ;;
       s390x*)
         host_arch=s390x
         ;;
@@ -410,7 +413,7 @@ function detect_arch {
         host_arch=ppc64le
         ;;
       *)
-        echo "Unsupported host arch. Must be x86_64, 386, arm, arm64, s390x or ppc64le." >&2
+        echo "Unsupported host arch. Must be x86_64, 386, arm, arm64, loongarch64, s390x or ppc64le." >&2
         exit 1
         ;;
     esac
